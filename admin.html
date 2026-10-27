@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LT's Console</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;600;800&display=swap">
+<style>
+/* LT's console for Lucky Aileen. Same committed light look as the game (baby-blue sunburst, navy ink, candy pink, gold),
+   held still and tidier: a two-column desk on wide screens (her balance + change form | requests + changes), one column on phones,
+   her activity full width underneath. */
+:root {
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  --bg: #bfe3ff;
+  --bg-ray: #cdeaff;
+  --panel: #f7fbff;
+  --line: #d3e7f7;
+  --muted: #5f84a9;
+  --ink: #12386a;
+  --ink-2: #2f5f94;
+  --accent: #ff8fb8;
+  --accent-soft: #fff0f6;
+  --kiss: #c43b78;
+  --gold: #ffc94a;
+  --gold-soft: #fff6dc;
+  --white: #ffffff;
+  --good: #1f8a5b;
+  --bad: #b3261e;
+  --display: "Bagel Fat One", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  --body: "Figtree", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body::before {
+  content: ""; position: fixed; left: 50%; top: 30%; width: 260vmax; height: 260vmax; z-index: -1; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, var(--bg-ray) 0 6deg, var(--bg) 6deg 12deg);
+  transform: translate(-50%, -50%);
+}
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.45;
+  padding-block: 24px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1, h2 { font-family: var(--display); font-weight: 400; margin: 0; line-height: 1; text-wrap: balance; }
+p { margin: 0; }
+main { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.top h1 { font-size: clamp(36px, 8vw, 54px); color: var(--white); text-shadow: 4px 4px 0 var(--ink); }
+.eyebrow { display: block; font-weight: 800; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 8px; }
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; background: var(--white); color: var(--ink);
+  border: 2.5px solid var(--ink); border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 800; white-space: nowrap;
+}
+.pill .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.pill.live .dot { background: var(--good); }
+
+.desk { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+@media (max-width: 820px) { .desk { grid-template-columns: minmax(0, 1fr); } }
+
+.panel {
+  background: var(--white); border: 3px solid var(--ink); border-radius: 14px; padding: 16px 18px;
+  box-shadow: 6px 6px 0 rgba(18, 56, 106, .2); display: flex; flex-direction: column; gap: 14px; min-width: 0;
+}
+.panel > header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.panel h2 { font-size: 22px; color: var(--ink); }
+.panel > header span { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.panel.attention { border-color: var(--ink); background: var(--accent-soft); }
+.note { font-size: 13px; color: var(--ink-2); }
+
+/* Balance */
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tile { background: var(--panel); border: 2.5px solid var(--ink); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tile small { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.tile b { font-family: var(--display); font-weight: 400; font-size: clamp(24px, 6vw, 32px); line-height: 1.05; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tile.kisses b { color: var(--kiss); }
+.tile em { font-style: normal; font-size: 12px; font-weight: 700; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.tile.blank b { color: var(--muted); }
+.sums { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; font-weight: 700; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+/* Change form */
+.seg { display: inline-flex; border: 2.5px solid var(--ink); border-radius: 999px; overflow: hidden; background: var(--white); align-self: flex-start; max-width: 100%; }
+.seg button { font: 800 14px var(--body); color: var(--ink); background: transparent; border: 0; padding: 9px 16px; cursor: pointer; white-space: nowrap; }
+.seg button + button { border-left: 2.5px solid var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--white); }
+.seg.dir button[data-dir="-1"][aria-pressed="true"] { background: var(--bad); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  font: 800 15px var(--body); color: var(--ink); background: var(--white); border: 2.5px solid var(--ink); border-radius: 999px;
+  padding: 8px 14px; cursor: pointer; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.chip[aria-pressed="true"] { background: var(--accent); box-shadow: 2px 2px 0 var(--ink); }
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 800; color: var(--ink-2); min-width: 0; }
+.field input {
+  font: 600 16px var(--body); color: var(--ink); background: var(--panel); border: 2.5px solid var(--ink); border-radius: 12px;
+  padding: 11px 14px; width: 100%; font-variant-numeric: tabular-nums;
+}
+.field input::placeholder { color: var(--muted); }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 10px; }
+@media (max-width: 460px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.preview {
+  border: 2.5px dashed var(--ink-2); border-radius: 12px; padding: 12px 14px; background: var(--panel);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.preview strong { font-family: var(--display); font-weight: 400; font-size: 24px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.preview.minus strong { color: var(--bad); }
+.preview span { font-size: 13px; font-weight: 700; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+/* Confirm pop-up: every change asks first. The card pops in with a little bounce over a navy veil. */
+.veil {
+  position: fixed; inset: 0; z-index: 80; display: grid; place-items: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  background: rgba(18, 56, 106, .45); animation: fade .2s ease both;
+}
+.veil.out { animation: fade .16s ease reverse both; }
+.veil.out .pop { animation: popout .16s ease both; }
+.pop {
+  width: min(100%, 400px); background: var(--white); border: 3px solid var(--ink); border-radius: 18px; padding: 22px 22px 20px;
+  box-shadow: 8px 8px 0 var(--ink); display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;
+  animation: popin .42s cubic-bezier(.2, 1.5, .4, 1) both;
+}
+.pop .icon {
+  width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; line-height: 1;
+  background: var(--accent-soft); border: 3px solid var(--ink); animation: wiggle .6s .15s ease both;
+}
+.pop.danger .icon { background: var(--gold-soft); }
+.pop h2 { font-size: 26px; }
+.pop .big { font-family: var(--display); font-size: 34px; line-height: 1.05; color: var(--good); font-variant-numeric: tabular-nums; }
+.pop.danger .big { color: var(--bad); }
+.pop p { color: var(--ink-2); font-weight: 600; overflow-wrap: anywhere; }
+.pop .row { justify-content: center; margin-top: 4px; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popin { from { opacity: 0; transform: scale(.6) translateY(24px) rotate(-3deg); } to { opacity: 1; transform: none; } }
+@keyframes popout { to { opacity: 0; transform: scale(.85) translateY(10px); } }
+@keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-12deg) scale(1.1); } 60% { transform: rotate(9deg); } }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+.btn {
+  font: 800 16px/1 var(--body); color: var(--ink); background: var(--accent); border: 3px solid var(--ink); border-radius: 999px;
+  padding: 13px 24px; box-shadow: 4px 4px 0 var(--ink); cursor: pointer; transition: transform .12s ease, box-shadow .12s ease;
+}
+.btn:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
+.btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+.btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: 4px 4px 0 var(--ink); }
+.btn.ghost { background: var(--white); }
+.btn.danger { background: var(--bad); color: var(--white); }
+.btn.small { font-size: 14px; padding: 9px 14px; box-shadow: 3px 3px 0 var(--ink); border-width: 2.5px; }
+.link { background: none; border: 0; font: 700 14px var(--body); color: var(--ink); cursor: pointer; padding: 8px 6px; text-decoration: underline; text-underline-offset: 3px; }
+.btn:focus-visible, .chip:focus-visible, .seg button:focus-visible, .link:focus-visible, .field input:focus-visible { outline: 3px dashed var(--ink); outline-offset: 3px; }
+.status { font-weight: 700; color: var(--ink-2); min-height: 1.4em; }
+.status.err { color: var(--bad); }
+
+/* Lists */
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.list li { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-top: 2px dashed var(--line); }
+.list li:first-child { border-top: 0; }
+.list .e { font-size: 22px; width: 28px; text-align: center; flex: none; }
+.list .t { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.list .t small { display: block; font-weight: 600; color: var(--muted); font-size: 12px; }
+.list .amt { font-family: var(--display); font-size: 18px; white-space: nowrap; font-variant-numeric: tabular-nums; text-align: right; }
+.list .amt small { display: block; font-family: var(--body); font-size: 11px; font-weight: 700; color: var(--muted); }
+.amt.plus { color: var(--good); }
+.amt.minus { color: var(--bad); }
+.list .acts { display: flex; gap: 6px; align-items: center; flex: none; }
+.empty { display: block; font-size: 14px; color: var(--ink-2); padding: 6px 0; }
+.empty b { color: var(--ink); }
+.tag { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; border-radius: 6px; padding: 3px 7px; white-space: nowrap; border: 2px solid currentColor; }
+.tag.given { color: var(--good); }
+.tag.declined { color: var(--muted); }
+.tag.pending { color: var(--ink-2); }
+.scroll { max-height: 520px; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
+
+/* Activity drop-down: a full-width bar that opens the list, five entries a page. */
+.drop {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%;
+  font: 800 15px var(--body); color: var(--ink); background: var(--panel); border: 2.5px solid var(--ink); border-radius: 12px;
+  padding: 12px 16px; cursor: pointer; box-shadow: 3px 3px 0 var(--ink); transition: transform .12s ease, box-shadow .12s ease;
+}
+.drop:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+.drop:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.drop:focus-visible { outline: 3px dashed var(--ink); outline-offset: 3px; }
+.drop .chev { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: var(--white); font-size: 14px; transition: transform .3s cubic-bezier(.2, 1.5, .4, 1); }
+.drop[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.drop-body { display: flex; flex-direction: column; gap: 12px; animation: unfold .3s ease both; }
+.drop-body.turn { animation: turn .25s ease both; }
+@keyframes unfold { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@keyframes turn { from { opacity: 0; transform: translateX(var(--from, 12px)); } to { opacity: 1; transform: none; } }
+.pager { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 4px; border-top: 2px dashed var(--line); }
+.pager span { font-size: 13px; font-weight: 800; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 560px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { background: var(--panel); border: 2.5px solid var(--ink); border-radius: 12px; padding: 10px 12px; text-align: center; min-width: 0; }
+.stat b { display: block; font-family: var(--display); font-weight: 400; font-size: clamp(18px, 4.5vw, 24px); line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.stat span { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+
+/* Gate */
+.gate { max-width: 460px; margin: 12vh auto 0; text-align: center; align-items: center; }
+.gate h1 { font-size: clamp(34px, 9vw, 48px); color: var(--white); text-shadow: 4px 4px 0 var(--ink); }
+.gate .panel { align-items: center; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 60;
+  transform: translate(-50%, 30px); opacity: 0; pointer-events: none;
+  background: var(--ink); color: var(--white); border-radius: 999px; padding: 12px 20px; font-weight: 800;
+  box-shadow: 4px 4px 0 rgba(18, 56, 106, .3); transition: transform .3s ease, opacity .3s ease; max-width: calc(100% - 32px); text-align: center;
+}
+.toast.show { transform: translate(-50%, 0); opacity: 1; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="veil" id="veil" hidden>
+  <div class="pop" id="pop" role="alertdialog" aria-modal="true" aria-labelledby="pop-title" aria-describedby="pop-text">
+    <span class="icon" id="pop-icon" aria-hidden="true">💋</span>
+    <h2 id="pop-title">Send to Aileen?</h2>
+    <span class="big" id="pop-big">+10 Kisses</span>
+    <p id="pop-text"></p>
+    <div class="row">
+      <button class="btn" id="pop-yes" type="button">Yes, send it</button>
+      <button class="btn ghost" id="pop-no" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Shown until we know who is looking, and to anyone who isn't LT. -->
+<main class="gate" id="gate">
+  <span class="eyebrow">Lucky Aileen</span>
+  <h1 id="gate-title">One moment…</h1>
+  <section class="panel">
+    <p id="gate-text">Checking who's looking.</p>
+    <a class="link" href="index.html">← Back to the game</a>
+  </section>
+</main>
+
+<main id="console" hidden>
+  <div class="top">
+    <div>
+      <span class="eyebrow">Lucky Aileen · only you can see this</span>
+      <h1>LT's console</h1>
+    </div>
+    <div class="row">
+      <a class="link" href="index.html">← Back to the game</a>
+      <span class="pill" id="conn"><span class="dot"></span><span id="conn-text">Connecting…</span></span>
+    </div>
+  </div>
+
+  <section class="panel" id="activity">
+    <header><h2>Her activity</h2><span id="hist-count">0 entries</span></header>
+    <div class="stats">
+      <div class="stat"><b id="st-played">0</b><span>Tickets</span></div>
+      <div class="stat"><b id="st-wins">0</b><span>Wins</span></div>
+      <div class="stat"><b id="st-kip">0</b><span>Kip won</span></div>
+      <div class="stat"><b id="st-kisses">0</b><span>Kisses won</span></div>
+    </div>
+    <button class="drop" id="hist-toggle" type="button" aria-expanded="false" aria-controls="hist-body">
+      <span id="hist-toggle-text">Show her activity</span><span class="chev" aria-hidden="true">▾</span>
+    </button>
+    <div class="drop-body" id="hist-body" hidden>
+      <ul class="list" id="hist-list">
+        <li><span class="empty">Nothing from Aileen yet. Her tickets, wins and swaps appear here as she plays. Her phone can only send them if you've shared the game with her as an Editor.</span></li>
+      </ul>
+      <nav class="pager" id="hist-pager" aria-label="Activity pages" hidden>
+        <button class="btn ghost small" id="hist-prev" type="button">‹ Newer</button>
+        <span id="hist-page">Page 1 of 1</span>
+        <button class="btn ghost small" id="hist-next" type="button">Older ›</button>
+      </nav>
+    </div>
+  </section>
+
+  <div class="desk">
+    <div class="col">
+      <section class="panel">
+        <header><h2>Aileen's balance</h2><span id="bal-when">Not synced yet</span></header>
+        <div class="tiles">
+          <div class="tile kisses blank" id="tile-kisses"><small>Kisses</small><b id="bal-kisses">–</b><em id="bal-kisses-kip">&nbsp;</em></div>
+          <div class="tile blank" id="tile-kip"><small>Money</small><b id="bal-kip">–</b><em>kip</em></div>
+        </div>
+        <p class="note" id="bal-note">Her balance shows here once her phone syncs. Her phone can only send it if you've shared the game with her as an Editor.</p>
+        <div class="sums" id="sums"></div>
+      </section>
+
+      <section class="panel" id="change">
+        <header><h2>Change her balance</h2><span>Reaches her phone live</span></header>
+        <div class="controls">
+          <div class="seg" role="group" aria-label="What to change" id="cur-seg">
+            <button type="button" data-cur="kisses" aria-pressed="true">💋 Kisses</button>
+            <button type="button" data-cur="kip" aria-pressed="false">💰 Money (kip)</button>
+          </div>
+          <div class="seg dir" role="group" aria-label="Add or take away" id="dir-seg">
+            <button type="button" data-dir="1" aria-pressed="true">Add</button>
+            <button type="button" data-dir="-1" aria-pressed="false">Take away</button>
+          </div>
+        </div>
+        <div class="chips" id="chips" role="group" aria-label="Amount"></div>
+        <div class="two">
+          <label class="field" for="amt">Other amount
+            <input type="text" id="amt" inputmode="numeric" autocomplete="off" placeholder="e.g. 15">
+          </label>
+          <label class="field" for="msg">Message to Aileen (optional)
+            <input type="text" id="msg" maxlength="80" autocomplete="off" placeholder="For being you">
+          </label>
+        </div>
+        <div class="preview" id="preview"><strong id="pv-main">+10 Kisses</strong><span id="pv-sub">Worth 10 000 kip</span></div>
+        <div class="row"><button class="btn" id="send" type="button">Send to Aileen</button></div>
+        <p class="status" id="send-status" aria-live="polite"></p>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel" id="req-panel">
+        <header><h2>Her requests</h2><span id="req-count">None waiting</span></header>
+        <ul class="list" id="req-list">
+          <li><span class="empty">When Aileen asks for Kisses, buys Kisses with kip, or withdraws her money, it shows here for you to answer. Her phone can only send requests if you've shared the game with her as an Editor.</span></li>
+        </ul>
+        <div id="req-done-wrap" hidden>
+          <button class="drop" id="done-toggle" type="button" aria-expanded="false" aria-controls="done-body">
+            <span id="done-toggle-text">Show answered</span><span class="chev" aria-hidden="true">▾</span>
+          </button>
+          <div class="drop-body" id="done-body" hidden>
+            <ul class="list" id="req-done"></ul>
+            <nav class="pager" id="done-pager" aria-label="Answered request pages" hidden>
+              <button class="btn ghost small" id="done-prev" type="button">‹ Newer</button>
+              <span id="done-page">Page 1 of 1</span>
+              <button class="btn ghost small" id="done-next" type="button">Older ›</button>
+            </nav>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <header><h2>Your changes</h2><span id="log-count">0 so far</span></header>
+        <button class="drop" id="log-toggle" type="button" aria-expanded="false" aria-controls="log-body">
+          <span id="log-toggle-text">Show your changes</span><span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <div class="drop-body" id="log-body" hidden>
+          <p class="note">Every change stays on record. To fix a mistake, send the opposite change.</p>
+          <ul class="list" id="log-list">
+            <li><span class="empty">Nothing sent yet. Your gifts and take-backs show here.</span></li>
+          </ul>
+          <nav class="pager" id="log-pager" aria-label="Change pages" hidden>
+            <button class="btn ghost small" id="log-prev" type="button">‹ Newer</button>
+            <span id="log-page">Page 1 of 1</span>
+            <button class="btn ghost small" id="log-next" type="button">Older ›</button>
+          </nav>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmt = (n) => Math.abs(Math.round(n)).toLocaleString("en-US").replace(/,/g, " ");
+  const signed = (n) => (n < 0 ? "−" : "+") + fmt(n);
+  const when = (t) => new Date(t).toLocaleString(undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+
+  // The house rule: 1 Kiss = 1 000 kip.
+  const KIP_PER_KISS = 1000;
+  const CHIPS = { kisses: [5, 10, 20, 50], kip: [10000, 50000, 100000] };
+  const MAX = { kisses: 10000, kip: 100000000 };
+  const unit = (cur, n) => cur === "kip" ? `${fmt(n)} kip` : `${fmt(n)} ${Math.abs(n) === 1 ? "Kiss" : "Kisses"}`;
+  const curOf = (g) => (g.currency === "kip" ? "kip" : "kisses");
+
+  let db = null, grants = [], asks = [], history = [], status = null;
+
+  let toastT = 0;
+  function toast(msg) {
+    const t = $("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 3200);
+  }
+  function gate(title, text) { $("gate-title").textContent = title; $("gate-text").textContent = text; }
+
+  /* ---------- change form ---------- */
+  let cur = "kisses", dir = 1, chip = 10, busy = false;
+  function amount() {
+    const typed = $("amt").value.replace(/[^\d]/g, "");
+    const n = typed ? parseInt(typed, 10) : chip;
+    return Number.isFinite(n) ? n : 0;
+  }
+  function renderForm() {
+    $("cur-seg").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.cur === cur)));
+    $("dir-seg").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.dir === dir)));
+    const typed = $("amt").value.trim() !== "";
+    $("chips").innerHTML = CHIPS[cur].map((n) => `<button type="button" class="chip" data-n="${n}" aria-pressed="${!typed && n === chip}">${dir < 0 ? "−" : "+"}${fmt(n)}${cur === "kisses" ? " 💋" : ""}</button>`).join("");
+    $("amt").placeholder = cur === "kip" ? "e.g. 25000" : "e.g. 15";
+    const n = amount(), v = n * dir;
+    const bad = n <= 0 || n > MAX[cur];
+    $("preview").classList.toggle("minus", dir < 0);
+    $("pv-main").textContent = bad ? "Choose an amount" : `${signed(v)} ${cur === "kip" ? "kip" : n === 1 ? "Kiss" : "Kisses"}`;
+    $("pv-sub").textContent = bad
+      ? (n > MAX[cur] ? `That's more than ${unit(cur, MAX[cur])} at once.` : "Tap an amount or type one.")
+      : cur === "kisses"
+        ? `${dir < 0 ? "Takes away" : "Worth"} ${fmt(n * KIP_PER_KISS)} kip · goes to her Kisses`
+        : `${dir < 0 ? "Comes out of" : "Goes into"} her money balance`;
+    $("send").textContent = dir < 0 ? "Take away…" : "Send to Aileen";
+    $("send").disabled = bad || busy || !db;
+  }
+  $("cur-seg").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    cur = b.dataset.cur; chip = CHIPS[cur][1]; $("amt").value = ""; renderForm();
+  });
+  $("dir-seg").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    dir = +b.dataset.dir; renderForm();
+  });
+  $("chips").addEventListener("click", (e) => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    chip = +b.dataset.n; $("amt").value = ""; renderForm();
+  });
+  $("amt").addEventListener("input", renderForm);
+
+  /* ---------- confirm pop-up ----------
+     ask({...}) shows the pop-up and resolves true on "Yes", false on Cancel, Escape or a tap outside. */
+  let answer = null, lastFocus = null;
+  function ask(o) {
+    if (answer) answer(false);
+    $("pop").classList.toggle("danger", !!o.danger);
+    $("pop-icon").textContent = o.icon;
+    $("pop-title").textContent = o.title;
+    $("pop-big").textContent = o.big || ""; $("pop-big").hidden = !o.big;
+    $("pop-text").textContent = o.text || ""; $("pop-text").hidden = !o.text;
+    $("pop-yes").textContent = o.yes;
+    $("pop-yes").className = "btn" + (o.danger ? " danger" : "");
+    lastFocus = document.activeElement;
+    $("veil").classList.remove("out"); $("veil").hidden = false;
+    setTimeout(() => $("pop-yes").focus(), 30);
+    return new Promise((resolve) => { answer = resolve; });
+  }
+  function close(ok) {
+    if (!answer) return;
+    const r = answer; answer = null; r(ok);
+    $("veil").classList.add("out");
+    setTimeout(() => { if (!answer) $("veil").hidden = true; }, 170);
+    if (lastFocus && lastFocus.isConnected) lastFocus.focus();
+  }
+  $("pop-yes").addEventListener("click", () => close(true));
+  $("pop-no").addEventListener("click", () => close(false));
+  $("veil").addEventListener("click", (e) => { if (e.target === $("veil")) close(false); });
+  document.addEventListener("keydown", (e) => {
+    if (!answer) return;
+    if (e.key === "Escape") close(false);
+    // Keep Tab inside the pop-up while it's open.
+    if (e.key === "Tab") { e.preventDefault(); (document.activeElement === $("pop-yes") ? $("pop-no") : $("pop-yes")).focus(); }
+  });
+
+  function setStatus(text, err) { $("send-status").textContent = text; $("send-status").classList.toggle("err", !!err); }
+
+  async function writeGrant(value, currency, note, askId) {
+    const g = { amount: value, currency, note: String(note || "").trim().slice(0, 80), at: Date.now() };
+    if (askId) g.ask = askId;
+    await db.collection("grants").add(g);
+  }
+  async function send() {
+    const n = amount(); if (busy || !db || n <= 0 || n > MAX[cur]) return;
+    busy = true; renderForm(); setStatus("Sending…");
+    const value = n * dir, c = cur;
+    try {
+      await writeGrant(value, c, $("msg").value);
+      setStatus(dir < 0 ? `Took ${unit(c, n)} from Aileen.` : `Sent ${unit(c, n)} to Aileen.`);
+      toast(dir < 0 ? `${unit(c, n)} taken away` : `${unit(c, n)} sent 💋`);
+      $("msg").value = ""; $("amt").value = "";
+    } catch (e) {
+      setStatus("Couldn't send it. Check your connection and try again.", true);
+    }
+    busy = false; renderForm();
+  }
+  $("send").addEventListener("click", async () => {
+    const n = amount(), msg = $("msg").value.trim();
+    if (busy || !db || n <= 0 || n > MAX[cur]) return;
+    const worth = cur === "kisses" ? ` (worth ${fmt(n * KIP_PER_KISS)} kip)` : "";
+    const ok = await ask(dir < 0 ? {
+      danger: true, icon: "⚠️", title: "Take this away?", big: `${signed(-n)} ${cur === "kip" ? "kip" : n === 1 ? "Kiss" : "Kisses"}`,
+      text: `This comes off ${cur === "kip" ? "Aileen's money" : "Aileen's Kisses"}${worth} right away.${msg ? ` Your message: “${msg}”` : ""}`,
+      yes: `Yes, take ${unit(cur, n)}`,
+    } : {
+      icon: cur === "kip" ? "💰" : "💋", title: "Send this to Aileen?", big: `${signed(n)} ${cur === "kip" ? "kip" : n === 1 ? "Kiss" : "Kisses"}`,
+      text: `It goes to ${cur === "kip" ? "her money" : "her Kisses"}${worth} and shows on her phone.${msg ? ` Your message: “${msg}”` : ""}`,
+      yes: "Yes, send it",
+    });
+    if (ok) send();
+  });
+
+  /* ---------- her balance ---------- */
+  function renderBalance() {
+    const s = status && Number.isFinite(s0(status.kisses)) ? status : null;
+    $("tile-kisses").classList.toggle("blank", !s); $("tile-kip").classList.toggle("blank", !s);
+    if (s) {
+      $("bal-kisses").textContent = fmt(s.kisses);
+      $("bal-kisses-kip").textContent = `= ${fmt(s.kisses * KIP_PER_KISS)} kip`;
+      $("bal-kip").textContent = fmt(s0(s.kip) || 0);
+      $("bal-when").textContent = s.at ? `As of ${when(s.at)}` : "Synced";
+      $("bal-note").textContent = `Aileen's balance as of ${s.at ? when(s.at) : "her last sync"}. It updates whenever her phone changes it.`;
+    } else {
+      $("bal-kisses").textContent = "–"; $("bal-kisses-kip").innerHTML = "&nbsp;"; $("bal-kip").textContent = "–";
+      $("bal-when").textContent = "Not synced yet";
+      $("bal-note").textContent = "Her balance shows here once her phone syncs. Her phone can only send it if you've shared the game with her as an Editor.";
+    }
+    const k = grants.filter((g) => curOf(g) === "kisses").reduce((a, g) => a + num(g.amount), 0);
+    const m = grants.filter((g) => curOf(g) === "kip").reduce((a, g) => a + num(g.amount), 0);
+    $("sums").innerHTML = grants.length
+      ? `<span>From you, all time: ${signed(k)} Kisses</span><span>${signed(m)} kip</span>`
+      : "";
+  }
+  const s0 = (v) => (typeof v === "number" ? v : NaN);
+  const num = (v) => (Number.isFinite(v) ? Math.trunc(v) : 0);
+
+  /* ---------- drop-downs and pages ----------
+     A drop-down is a <prefix>-toggle button that shows or hides <prefix>-body; label(count) names what it holds.
+     A pager shows `size` items at a time with <prefix>-prev / -next / -page, sliding the body as the page turns. */
+  function dropDown(prefix, label) {
+    const btn = $(prefix + "-toggle"), text = $(prefix + "-toggle-text"), body = $(prefix + "-body");
+    let open = false, count = 0;
+    const paint = () => {
+      btn.setAttribute("aria-expanded", String(open));
+      text.textContent = `${open ? "Hide" : "Show"} ${label(count)}`;
+      body.hidden = !open;
+    };
+    btn.addEventListener("click", () => { open = !open; paint(); });
+    paint();
+    return { count(n) { count = n; paint(); } };
+  }
+  function pager(prefix, size, rerender) {
+    let page = 0;
+    const turn = (step) => {
+      page += step; rerender();
+      const body = $(prefix + "-body");
+      body.style.setProperty("--from", step > 0 ? "14px" : "-14px");
+      body.classList.remove("turn"); void body.offsetWidth; body.classList.add("turn");
+    };
+    $(prefix + "-prev").addEventListener("click", () => turn(-1));
+    $(prefix + "-next").addEventListener("click", () => turn(1));
+    return {
+      slice(items) {
+        const pages = Math.max(1, Math.ceil(items.length / size));
+        page = Math.min(page, pages - 1);
+        $(prefix + "-pager").hidden = pages < 2;
+        $(prefix + "-page").textContent = `Page ${page + 1} of ${pages}`;
+        $(prefix + "-prev").disabled = page === 0;
+        $(prefix + "-next").disabled = page >= pages - 1;
+        return items.slice(page * size, page * size + size);
+      },
+    };
+  }
+
+  /* ---------- requests ----------
+     Three kinds come from her phone, all in `asks`:
+       ask      – she asks for Kisses (amount = Kisses). Give = a Kisses grant tied to the request.
+       topup    – she paid LT real kip and wants Kisses (amount = Kisses, cost = amount × 1 000 kip). Add once the money arrives.
+       withdraw – she wants her money paid out (amount = kip, already taken off her balance). Mark paid; no grant.
+       earn     – she did one of the Sweet things tasks. Only known tasks count, at that task's own Kisses; the phone's amount is ignored.
+     Every field is cleaned first: her phone writes these, so nothing in them is trusted. */
+  const TASKS = {
+    selfie: { e: "🤳", t: "Send LT a cute selfie", n: 2 },
+    kiss: { e: "💋", t: "Give LT a real kiss", n: 5 },
+    drink: { e: "🧋", t: "Make LT a drink", n: 10 },
+    pepsi: { e: "🥤", t: "Let LT drink Pepsi", n: 10 },
+    video: { e: "📹", t: "Send a video of your face", n: 5 },
+    speech: { e: "🎤", t: "Give LT a motivational speech", n: 50 },
+  };
+  const cleanAsk = (id, d) => {
+    const a = {
+      id,
+      type: ["ask", "topup", "withdraw", "earn"].includes(d.type) ? d.type : "ask",
+      amount: Math.trunc(Number(d.amount)) || 0,
+      note: d.note ? String(d.note).slice(0, 80) : "",
+      at: Number(d.at) || 0,
+      status: ["pending", "given", "declined"].includes(d.status) ? d.status : "pending",
+    };
+    if (a.type === "earn") {
+      // An unknown task gets amount 0, so it can only be declined.
+      const task = Object.prototype.hasOwnProperty.call(TASKS, d.task) ? TASKS[d.task] : null;
+      Object.assign(a, task ? { amount: task.n, title: task.t, emoji: task.e } : { amount: 0, title: "Unknown task", emoji: "❓" }, { note: "" });
+    }
+    return a;
+  };
+  const REQ = {
+    ask: {
+      icon: "💌", max: MAX.kisses,
+      line: (n) => `${fmt(n)} ${n === 1 ? "Kiss" : "Kisses"}`, sub: (n) => `asks for Kisses · worth ${fmt(n * KIP_PER_KISS)} kip`,
+      act: "Give", done: "Given",
+      confirm: (n, note) => ({ icon: "💌", title: "Give her this request?", big: `+${fmt(n)} ${n === 1 ? "Kiss" : "Kisses"}`,
+        text: `Worth ${fmt(n * KIP_PER_KISS)} kip. ${note}`.trim(), yes: `Yes, give ${fmt(n)}` }),
+      grant: (n, a) => ({ value: n, note: a.note ? "For: " + a.note : "You asked nicely" }),
+      toast: (n) => `Gave Aileen ${unit("kisses", n)} 💋`,
+      decline: (n) => `She'll see "Not this time".`,
+    },
+    topup: {
+      icon: "🛒", max: MAX.kisses,
+      line: (n) => `Buy ${fmt(n)} ${n === 1 ? "Kiss" : "Kisses"} for ${fmt(n * KIP_PER_KISS)} kip`, sub: () => "says she paid you real kip",
+      act: (n) => `Money arrived · add ${fmt(n)}`, done: "Added",
+      confirm: (n, note) => ({ icon: "🛒", title: "Has her payment arrived?", big: `+${fmt(n)} ${n === 1 ? "Kiss" : "Kisses"}`,
+        text: `Only once her ${fmt(n * KIP_PER_KISS)} kip has arrived. Then the Kisses go straight to her balance. ${note}`.trim(),
+        yes: `Yes, it arrived · add ${fmt(n)}` }),
+      grant: (n) => ({ value: n, note: `Bought with ${fmt(n * KIP_PER_KISS)} kip` }),
+      toast: (n) => `Added ${unit("kisses", n)} for her ${fmt(n * KIP_PER_KISS)} kip 💋`,
+      decline: (n) => `No Kisses are added. If she did send ${fmt(n * KIP_PER_KISS)} kip, sort it out with her.`,
+    },
+    earn: {
+      icon: "✨", max: 100,
+      line: (n, a) => `${a.title} · +${fmt(n)} ${n === 1 ? "Kiss" : "Kisses"}`, sub: () => "did a sweet thing",
+      act: "Approve", done: "Approved",
+      confirm: (n, note, a) => ({ icon: a.emoji, title: "Did she really do it?", big: `+${fmt(n)} ${n === 1 ? "Kiss" : "Kisses"}`,
+        text: `${a.title}. Approve only if it happened.`, yes: `Yes, approve ${fmt(n)}` }),
+      grant: (n, a) => ({ value: n, note: `For: ${a.title}` }),
+      toast: (n) => `Approved · ${unit("kisses", n)} sent 💋`,
+      decline: () => "She won't get these Kisses.",
+    },
+    withdraw: {
+      icon: "💸", max: MAX.kip,
+      line: (n) => `Pay out ${fmt(n)} kip`, sub: () => "wants her money · already off her balance",
+      act: "Mark paid", done: "Paid", danger: true,
+      confirm: (n, note) => ({ icon: "💸", title: "Have you paid her?", big: `${fmt(n)} kip`,
+        text: `Only once she has the money. It already came off her money balance. ${note}`.trim(), yes: "Yes, mark paid" }),
+      grant: null,
+      toast: (n) => `Marked ${fmt(n)} kip as paid`,
+      decline: (n) => `Her ${fmt(n)} kip goes back to her money balance.`,
+    },
+  };
+  // Answered requests sit behind their own drop-down, four a page, newest first.
+  const doneOpen = dropDown("done", (n) => `answered (${fmt(n)})`);
+  const donePages = pager("done", 4, () => renderAsks());
+  const okAmount = (a) => a.amount > 0 && a.amount <= REQ[a.type].max;
+  const reqNote = (a) => (a.note ? "“" + esc(a.note) + "” · " : "");
+  function renderAsks() {
+    const pending = asks.filter((a) => a.status === "pending").sort((a, b) => a.at - b.at);
+    const done = asks.filter((a) => a.status !== "pending").sort((a, b) => b.at - a.at);
+    $("req-count").textContent = pending.length ? `${pending.length} waiting` : "None waiting";
+    $("req-panel").classList.toggle("attention", pending.length > 0);
+    $("req-list").innerHTML = pending.length
+      ? pending.map((a) => {
+          const r = REQ[a.type], act = typeof r.act === "function" ? r.act(a.amount) : r.act;
+          return `<li><span class="e">${a.emoji || r.icon}</span>
+          <span class="t">${r.line(a.amount, a)}<small>${reqNote(a)}${when(a.at)} · ${r.sub(a.amount)}</small></span>
+          <span class="acts">${a.type === "earn" && !a.amount ? "" : `<button class="btn small${r.danger ? " ghost" : ""}" type="button" data-give="${esc(a.id)}">${act}</button>`}<button class="link" type="button" data-decline="${esc(a.id)}">Decline</button></span></li>`;
+        }).join("")
+      : `<li><span class="empty">${asks.length ? "No requests waiting." : "When Aileen asks for Kisses, buys Kisses with kip, or withdraws her money, it shows here for you to answer. Her phone can only send requests if you've shared the game with her as an Editor."}</span></li>`;
+    $("req-done-wrap").hidden = !done.length;
+    doneOpen.count(done.length);
+    $("req-done").innerHTML = donePages.slice(done).map((a) => {
+      const r = REQ[a.type];
+      return `<li><span class="e">${a.emoji || r.icon}</span>
+        <span class="t">${r.line(a.amount, a)}<small>${reqNote(a)}${when(a.at)}</small></span>
+        <span class="tag ${a.status === "given" ? "given" : "declined"}">${a.status === "given" ? r.done : "Declined"}</span></li>`;
+    }).join("");
+  }
+  $("req-list").addEventListener("click", async (e) => {
+    const g = e.target.closest("[data-give]"), d = e.target.closest("[data-decline]");
+    if (!db || (!g && !d)) return;
+    const id = (g || d).dataset.give || (g || d).dataset.decline;
+    const a = asks.find((x) => x.id === id); if (!a) return;
+    const r = REQ[a.type], n = a.amount, note = a.note ? `Her note: “${a.note}”` : "";
+    if (g && a.type === "earn" && !a.amount) { toast("That isn't one of the game's tasks. Decline it."); return; }
+    if (g && !okAmount(a)) { toast(`That request is for ${a.type === "withdraw" ? fmt(n) + " kip" : fmt(n) + " Kisses"}, which isn't allowed. Decline it.`); return; }
+    const ok = await ask(g ? r.confirm(n, note, a) : {
+      danger: true, icon: "🙅", title: "Decline her request?", big: r.line(n, a),
+      text: `${r.decline(n)} ${note}`.trim(), yes: "Yes, decline",
+    });
+    if (!ok) return;
+    const live = asks.find((x) => x.id === id);
+    if (!live || live.status !== "pending") { toast("That request was already answered."); return; }
+    (g || d).disabled = true;
+    try {
+      if (g) {
+        if (r.grant) { const gr = r.grant(n, a); await writeGrant(gr.value, "kisses", gr.note, a.id); }
+        await db.doc("asks/" + a.id).update({ status: "given" });
+        toast(r.toast(n));
+      } else {
+        await db.doc("asks/" + a.id).update({ status: "declined" });
+        toast("Request declined");
+      }
+    } catch (err) { (g || d).disabled = false; toast("Couldn't update that request. Try again."); }
+  });
+
+  /* ---------- your changes ---------- */
+  // Closed by default behind a drop-down; five changes a page, newest first.
+  const logOpen = dropDown("log", (n) => `your changes (${fmt(n)})`);
+  const logPages = pager("log", 5, () => renderLog());
+  function renderLog() {
+    const list = grants.slice().sort((a, b) => (b.at || 0) - (a.at || 0));
+    $("log-count").textContent = list.length === 1 ? "1 so far" : `${list.length} so far`;
+    logOpen.count(list.length);
+    $("log-list").innerHTML = list.length
+      ? logPages.slice(list).map((g) => {
+          const c = curOf(g), v = num(g.amount);
+          const sub = c === "kisses" ? `${signed(v * KIP_PER_KISS)} kip` : "money";
+          return `<li><span class="e">${c === "kip" ? "💰" : "💋"}</span>
+            <span class="t">${g.note ? esc(g.note) : `<span style="color:var(--muted)">No message</span>`}<small>${g.at ? when(g.at) : ""}${g.ask ? " · her request" : ""}</small></span>
+            <span class="amt ${v < 0 ? "minus" : "plus"}">${signed(v)} ${c === "kip" ? "kip" : "💋"}<small>${sub}</small></span></li>`;
+        }).join("")
+      : '<li><span class="empty">Nothing sent yet. Your gifts and take-backs show here.</span></li>';
+  }
+
+  /* ---------- her activity ----------
+     Closed by default behind a drop-down button; when open, five entries a page, newest first. */
+  dropDown("hist", () => "her activity");
+  const histPages = pager("hist", 5, () => renderHistory());
+
+  function renderHistory() {
+    const results = history.filter((e) => e.kind === "result");
+    $("st-played").textContent = fmt(results.length);
+    $("st-wins").textContent = fmt(results.filter((e) => e.won).length);
+    $("st-kip").textContent = fmt(results.reduce((n, e) => n + num(e.kip), 0));
+    $("st-kisses").textContent = fmt(results.reduce((n, e) => n + num(e.kisses), 0));
+    $("hist-count").textContent = history.length === 1 ? "1 entry" : `${fmt(history.length)} entries`;
+    const shown = histPages.slice(history);
+    $("hist-list").innerHTML = history.length
+      ? shown.map((e) => `<li><span class="e">${esc(e.icon || "•")}</span><span class="t">${esc(String(e.text || e.kind || "").slice(0, 200))}<small>${e.t ? when(e.t) : ""}</small></span></li>`).join("")
+      : '<li><span class="empty">Nothing from Aileen yet. Her tickets, wins and swaps appear here as she plays. Her phone can only send them if you\'ve shared the game with her as an Editor.</span></li>';
+  }
+
+  /* ---------- connect ---------- */
+  function setConn(live, text) { $("conn").classList.toggle("live", live); $("conn-text").textContent = text; }
+  function lost() { setConn(false, "Disconnected · reload the page"); db = null; renderForm(); }
+
+  renderForm();
+  (async () => {
+    if (!window.claude || typeof window.claude.use !== "function") {
+      gate("This page is for LT", "Open it from the game's link in Claude, signed in as LT."); return;
+    }
+    const user = await window.claude.use("user");
+    if (!user) { gate("Can't tell who's here", "This page couldn't check who you are. Open it from the game's link in Claude, signed in as LT."); return; }
+    const owner = await user.isOwner();
+    if (!owner) { gate("This page is for LT", "Only LT can open the console. Head back to the game to play."); return; }
+    $("gate").hidden = true; $("console").hidden = false;
+    db = await window.claude.use("db");
+    if (!db) { setConn(false, "Can't reach the game's data"); setStatus("This view can't reach the game's data, so changes can't be sent from here.", true); renderForm(); return; }
+    setConn(true, "Live");
+    renderForm();
+    db.collection("grants").onSnapshot((snap) => {
+      grants = snap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+      renderLog(); renderBalance();
+    }, lost);
+    db.collection("asks").onSnapshot((snap) => {
+      asks = snap.docs.map((d) => cleanAsk(d.id, d.data()));
+      renderAsks();
+    }, lost);
+    db.collection("history").orderBy("t", "desc").limit(300).onSnapshot((snap) => {
+      history = snap.docs.map((d) => d.data());
+      renderHistory();
+    }, lost);
+    db.doc("status/aileen").onSnapshot((snap) => {
+      status = snap.exists ? snap.data() : null;
+      renderBalance();
+    }, () => {});
+  })();
+})();
+</script>
+</body>
+</html>
