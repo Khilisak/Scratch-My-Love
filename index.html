@@ -105,6 +105,17 @@ p { margin: 0; }
 .play svg { width: 20px; height: 20px; }
 @keyframes pulse { 0%, 100% { box-shadow: 4px 4px 0 var(--ink), 0 0 0 0 rgba(255, 143, 184, .55); } 50% { box-shadow: 4px 4px 0 var(--ink), 0 0 0 14px rgba(255, 143, 184, 0); } }
 .home-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+/* Real-money totals, top left, mirroring the balance pills on the right. */
+.home .corner-left { position: absolute; top: max(16px, env(safe-area-inset-top, 0px)); left: 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.hstat b { font-family: var(--display); font-weight: 400; font-size: 17px; }
+.hs-amt { white-space: nowrap; }
+@media (max-width: 600px) {
+  .home .corner, .home .corner-left { flex-direction: column; gap: 6px; }
+  .home .corner { align-items: flex-end; }
+  .home .corner-left { align-items: flex-start; max-width: 56%; }
+  .hstat { flex-wrap: wrap; row-gap: 0; font-size: 12px; padding: 5px 11px; border-radius: 16px; }
+  .hstat b { font-size: 15px; }
+}
 /* Login */
 .who-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; width: min(100%, 460px); }
 .who {
@@ -203,6 +214,56 @@ p { margin: 0; }
 .pick.chosen { animation: none; transform: translateX(var(--dx, 0px)) scale(1.18); transition: transform .55s cubic-bezier(.3, 1.3, .5, 1); z-index: 2; }
 .pick.chosen .pick-card { rotate: 0deg; transform: rotateY(180deg); transition-delay: .25s; }
 .pick.chosen .pick-name { opacity: 0; }
+
+/* ---------- Pick a card from the pile ---------- */
+.pile-screen { height: 100vh; height: 100svh; gap: clamp(8px, 2svh, 20px); padding-block: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-bottom, 0px)); }
+.pile-screen .bar { width: 100%; max-width: 1200px; margin: 0 auto; }
+.table {
+  flex: 1; min-height: 240px; width: 100%; max-width: 1100px; margin: 0 auto; position: relative; overflow: hidden;
+  border: 3px solid var(--ink); border-radius: 28px;
+  background: radial-gradient(ellipse at 50% 38%, #f3f9ff, #cfe5fa 55%, #a9cff2);
+  box-shadow: 6px 8px 0 rgba(18, 56, 106, .18), inset 0 0 70px rgba(18, 56, 106, .16);
+}
+.pile-card {
+  position: absolute; left: var(--x); top: var(--y); width: var(--w); aspect-ratio: 2 / 3; z-index: var(--z);
+  padding: 0; border: 0; background: none; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transform: translate(-50%, -50%) rotate(var(--r));
+  transition: transform .4s cubic-bezier(.3, 1.6, .5, 1), filter .25s ease, left .6s cubic-bezier(.3, 1.3, .5, 1), top .6s cubic-bezier(.3, 1.3, .5, 1);
+  animation: drop .55s cubic-bezier(.2, 1.3, .4, 1) backwards; animation-delay: calc(var(--i) * 60ms + .1s);
+}
+.pile-card.still { animation: none; }
+@keyframes drop { from { transform: translate(-50%, -190%) rotate(calc(var(--r) * 3)) scale(1.35); opacity: 0; } }
+.pile-face {
+  position: absolute; inset: 0; border-radius: 10px; container-type: inline-size; display: grid; place-items: center;
+  background-color: var(--t-bg); background-image: radial-gradient(circle at 20% 0%, var(--t-bg2), transparent 60%), var(--t-pattern);
+  box-shadow: 0 0 0 2.5px var(--white), 0 0 0 5px var(--ink), 3px 6px 0 4px rgba(18, 56, 106, .2);
+  transition: box-shadow .25s ease;
+}
+.pile-face span { font-size: 40cqw; line-height: 1; filter: drop-shadow(2px 2px 0 rgba(18, 56, 106, .35)); }
+.pile-face b { position: absolute; bottom: 9cqw; font-family: var(--display); font-weight: 400; font-size: 15cqw; color: var(--t-title); text-shadow: 1.5px 1.5px 0 var(--ink); }
+.pile-card::after {
+  content: "✨"; position: absolute; top: -10%; right: -12%; font-size: calc(var(--w) * .3); pointer-events: none;
+  opacity: 0; transform: scale(.3) rotate(-30deg); transition: opacity .2s ease, transform .4s cubic-bezier(.3, 1.8, .5, 1);
+}
+/* Hovering a card: it springs up and straightens, glows gold, wiggles, and sparkles; the rest of the pile dims. */
+.table:hover .pile-card:not(:hover) { filter: brightness(.93) saturate(.85); }
+.pile-card:hover, .pile-card:focus-visible { z-index: 60; transform: translate(-50%, -66%) rotate(0deg) scale(1.16); outline: none; }
+.pile-card:hover::after, .pile-card:focus-visible::after { opacity: 1; transform: scale(1) rotate(12deg); }
+.pile-card:hover .pile-face, .pile-card:focus-visible .pile-face {
+  box-shadow: 0 0 0 2.5px var(--white), 0 0 0 5px var(--ink), 0 0 22px 8px rgba(255, 201, 74, .8), 6px 14px 0 4px rgba(18, 56, 106, .16);
+  animation: wiggle .8s ease-in-out infinite;
+}
+@keyframes wiggle { 0%, 100% { rotate: -2.5deg; } 50% { rotate: 2.5deg; } }
+/* Phones have no hover: a quick squash when the finger lands. */
+.pile-card:active { transform: translate(-50%, -54%) rotate(0deg) scale(1.06); transition-duration: .12s; }
+@media (prefers-reduced-motion: reduce) { .pile-card:hover .pile-face, .pile-card:focus-visible .pile-face { animation: none; } }
+.table.chosen .pile-card { pointer-events: none; }
+.table.chosen .pile-card:not(.chosen) { animation: sweep .45s ease-in forwards; }
+@keyframes sweep { to { transform: translate(-50%, -30%) rotate(var(--r)) scale(.6); opacity: 0; } }
+.pile-card.chosen { left: 50%; top: 50%; z-index: 99; transform: translate(-50%, -50%) rotate(0deg) scale(1.8); }
+.pile-card.chosen .pile-face { animation: glow .7s ease-in-out infinite alternate; }
+@keyframes glow { to { box-shadow: 0 0 0 2.5px var(--white), 0 0 0 5px var(--ink), 0 0 26px 10px rgba(255, 201, 74, .85); } }
+.sound { font-size: 18px; padding: 6px 8px; }
 
 /* ---------- Ticket ---------- */
 .ticket {
@@ -481,6 +542,10 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
     <span class="spark" style="right:8%;top:20%">✦</span>
     <span class="spark" style="left:12%;top:58%;font-size:13px">✦</span>
     <span class="spark" style="right:4%;top:66%;font-size:24px">✦</span>
+    <span class="corner-left" aria-live="polite">
+      <span class="pill hstat" title="Kip you've paid LT for Kisses">🛒 Redeemed <span class="hs-amt"><b id="hs-redeem">0</b> kip</span></span>
+      <span class="pill hstat" title="Kip LT has paid you">💸 Withdrawn <span class="hs-amt"><b id="hs-withdraw">0</b> kip</span></span>
+    </span>
     <span class="corner pills"><span class="pill money">💰 <b class="kip">0</b> kip</span><span class="pill balance">💋 <b class="bal">20</b> Kisses</span></span>
 
     <span class="eyebrow">Aileen's official scratch cards</span>
@@ -493,6 +558,7 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
       <button class="btn ghost small" id="shop-open">Kiss Shop</button>
       <button class="btn ghost small" id="history-open">History</button>
     </div>
+
     <p class="legal">Every prize must be honoured. No refunds on kisses.</p>
     <div class="home-foot">
       <button class="btn small" id="admin-open" hidden>Go to Admin console</button>
@@ -514,10 +580,25 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
     <div class="choose-note" id="choose-note" aria-live="polite"></div>
   </section>
 
+  <!-- Pick your own card from the pile -->
+  <section class="screen pile-screen" id="pile" hidden>
+    <nav class="bar">
+      <button class="link" id="pile-home">← Home</button>
+      <span class="pills"><span class="pill money">💰 <b class="kip">0</b> kip</span><span class="pill balance">💋 <b class="bal">20</b> Kisses</span></span>
+    </nav>
+    <div class="choose-head">
+      <span class="eyebrow" id="pile-eyebrow">Ticket #1</span>
+      <h2 class="choose-title">Pick your lucky one</h2>
+    </div>
+    <div class="table" id="table"></div>
+    <div class="choose-note"><button class="btn small ghost" id="pile-shuffle">🔀 Shuffle the pile</button></div>
+  </section>
+
   <!-- Game -->
   <section class="screen" id="game" hidden>
     <nav class="bar">
       <button class="link" id="home-btn">← Home</button>
+      <button class="link sound" id="sound-btn" aria-label="Sound on">🔊</button>
       <span class="pills"><span class="pill money">💰 <b class="kip">0</b> kip</span><span class="pill balance">💋 <b class="bal">20</b> Kisses</span></span>
     </nav>
 
@@ -805,6 +886,7 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
      LT's gifts themselves live in the shared `grants` collection, so they reach her phone live. */
   let state = { idx: 0, revealed: false, paidIdx: -1, wins: [], design: "sky", spent: 0, earned: 0, earnLog: {}, seenGrants: [], kipWon: 0, kipSpent: 0, log: [] };
   try { const s = JSON.parse(store.get("aileen.scratch") || "null"); if (s && typeof s.idx === "number") state = Object.assign(state, s); } catch (e) {}
+  if (typeof state.pickedIdx !== "number") state.pickedIdx = state.paidIdx;
   const save = () => store.set("aileen.scratch", JSON.stringify(state));
   const design = () => designOf(state.design);
   const seedOf = () => (Number.isFinite(state.seed) ? state.seed : 5003 + state.idx * 104729);
@@ -956,6 +1038,70 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
   const BRUSH = 12, WEAR = .45;
   // `regions` (optional) returns the boxes under this foil, in CSS px relative to the canvas.
   // When given, the result waits until EVERY box is mostly uncovered, not just a share of the whole panel.
+  /* Sounds. Scratching: grainy noise through a band-pass filter, as loud as the finger is fast. Winning: a "ta-da" chime,
+     a cheery rising "yaaay" and sparkles (a longer fanfare for a jackpot). Built on the first touch, because browsers only
+     start audio from a tap. All off when state.sound is false (the 🔊 button in the game bar). */
+  const scratchSound = (() => {
+    let ac = null, gain = null, band = null, quietT = 0;
+    function ready() {
+      if (ac) return true;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      try {
+        ac = new AC();
+        const buf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), data = buf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (Math.random() < .07 ? 1 : .4);
+        const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+        const high = ac.createBiquadFilter(); high.type = "highpass"; high.frequency.value = 900;
+        band = ac.createBiquadFilter(); band.type = "bandpass"; band.frequency.value = 3200; band.Q.value = .8;
+        gain = ac.createGain(); gain.gain.value = 0;
+        src.connect(high); high.connect(band); band.connect(gain); gain.connect(ac.destination); src.start();
+        return true;
+      } catch (e) { ac = null; return false; }
+    }
+    function quiet() { if (ac) gain.gain.setTargetAtTime(0, ac.currentTime, .03); }
+    function move(dist) {
+      if (state.sound === false || !ready()) return;
+      if (ac.state === "suspended") ac.resume();
+      const t = ac.currentTime;
+      gain.gain.cancelScheduledValues(t);
+      gain.gain.setTargetAtTime(Math.min(.55, .1 + dist / 50), t, .015);
+      band.frequency.setTargetAtTime(2300 + Math.random() * 2400, t, .02);
+      clearTimeout(quietT); quietT = setTimeout(quiet, 70);
+    }
+    function tone(t, freq, dur, type, vol) {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .015); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + .05);
+    }
+    // A buzzy voice gliding up through two vowel filters reads as a little "yaaay".
+    function yay(t, len) {
+      const o = ac.createOscillator(), vib = ac.createOscillator(), vibAmt = ac.createGain(), g = ac.createGain();
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(380, t); o.frequency.exponentialRampToValueAtTime(640, t + len * .35); o.frequency.exponentialRampToValueAtTime(580, t + len);
+      vib.frequency.value = 6; vibAmt.gain.value = 14; vib.connect(vibAmt); vibAmt.connect(o.frequency);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.3, t + .06);
+      g.gain.setValueAtTime(.3, t + len * .7); g.gain.exponentialRampToValueAtTime(.0001, t + len);
+      [[800, 5], [1300, 6]].forEach(([f, q]) => {
+        const b = ac.createBiquadFilter(); b.type = "bandpass"; b.frequency.value = f; b.Q.value = q; o.connect(b); b.connect(g);
+      });
+      g.connect(ac.destination);
+      o.start(t); vib.start(t); o.stop(t + len + .05); vib.stop(t + len + .05);
+    }
+    function win(big) {
+      if (state.sound === false || !ready()) return;
+      if (ac.state === "suspended") ac.resume();
+      const t = ac.currentTime + .05, notes = big ? [523, 659, 784, 1047, 784, 1047, 1319] : [523, 659, 784, 1047];
+      notes.forEach((f, i) => { tone(t + i * .09, f, .5, "triangle", .22); tone(t + i * .09, f * 2, .3, "sine", .05); });
+      const end = t + notes.length * .09;
+      if (big) [523, 659, 784, 1047].forEach((f) => tone(end, f, 1.4, "triangle", .1));
+      yay(end - .05, big ? 1.1 : .7);
+      for (let i = 0; i < (big ? 14 : 7); i++) tone(end + Math.random() * (big ? 1 : .6), 1800 + Math.random() * 2200, .12, "sine", .06);
+    }
+    return { move, quiet, win };
+  })();
+
   function makeScratch(canvas, onReveal, needed, regions) {
     const ctx = canvas.getContext("2d");
     const s = { revealed: true, hidden: true, locked: false, lockedText: "", onLocked: null };
@@ -1042,15 +1188,15 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
       if (s.hidden) return;
       e.preventDefault();
       if (s.locked) { if (s.onLocked) s.onLocked(); return; }
-      active = true; last = pos(e); scrape(last, last);
+      active = true; last = pos(e); scrape(last, last); scratchSound.move(0);
       if (canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
     });
     canvas.addEventListener("pointermove", (e) => {
       if (!active || s.hidden) return;
-      const p = pos(e); scrape(last, p); last = p;
+      const p = pos(e); scratchSound.move(Math.hypot(p.x - last.x, p.y - last.y)); scrape(last, p); last = p;
       if (++moves % 10 === 0) check();
     });
-    const stop = () => { if (active) check(); active = false; };
+    const stop = () => { if (active) check(); active = false; scratchSound.quiet(); };
     canvas.addEventListener("pointerup", stop); canvas.addEventListener("pointercancel", stop);
     // Keyboard players get the whole panel at once.
     canvas.addEventListener("keydown", (e) => {
@@ -1075,20 +1221,31 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
   const luckyFoil = makeScratch($("scratch-lucky"), () => luckyRevealed(), .55);
 
   /* ---------- screens ---------- */
-  const SCREENS = ["login", "home", "choose", "game", "shop", "lt", "history"];
+  const SCREENS = ["login", "home", "choose", "pile", "game", "shop", "lt", "history"];
   function showOnly(id) {
     SCREENS.forEach((s) => ($(s).hidden = s !== id));
-    document.body.classList.toggle("full", id === "home" || id === "choose" || id === "login");
+    document.body.classList.toggle("full", id === "home" || id === "choose" || id === "pile" || id === "login");
   }
   function updateHome() {
     $("play-label").textContent = state.idx === 0 && !state.revealed && state.paidIdx !== 0 ? "Play" : "Keep playing";
+    renderHomeStats();
+  }
+  /* Real money between Aileen and LT, from the shared requests: kip she paid LT for Kisses (Redeem) and kip LT paid
+     her (Withdraw). Only requests LT has completed count.
+     Money that changed hands before the game kept records is added on top (LT's figures, 29 Oct 2026). */
+  const BEFORE_GAME = { topup: 300000, withdraw: 0 };
+  function renderHomeStats() {
+    const sum = (type) => asks.filter((a) => reqType(a) === type && askStatus(a) === "given")
+      .reduce((n, a) => n + (type === "topup" ? (Number.isFinite(Number(a.kip)) && Number(a.kip) > 0 ? Math.trunc(Number(a.kip)) : askAmt(a) * KIP_PER_KISS) : askAmt(a)), 0);
+    const show = (type, id) => { $(id).textContent = kipFmt(Math.max(0, BEFORE_GAME[type] + sum(type))); };
+    show("topup", "hs-redeem"); show("withdraw", "hs-withdraw");
   }
   function goHome() { showOnly("home"); updateHome(); window.scrollTo(0, 0); }
   function goGame() { showOnly("game"); toTop(); renderTicket(); }
   function goShop() { showOnly("shop"); toTop(); ["buy-fallback", "wd-fallback"].forEach((id) => ($(id).hidden = true)); $("earn-status").textContent = ""; renderShop(); }
   function goLT() { showOnly("lt"); toTop(); renderLT(); }
   function goHistory() { showOnly("history"); toTop(); renderHistory(); }
-  ["home-btn", "choose-home", "shop-home", "lt-home", "history-home"].forEach((id) => $(id).addEventListener("click", goHome));
+  ["home-btn", "choose-home", "pile-home", "shop-home", "lt-home", "history-home"].forEach((id) => $(id).addEventListener("click", goHome));
   $("shop-open").addEventListener("click", goShop);
   document.querySelectorAll(".pills").forEach((el) => {
     el.setAttribute("role", "button"); el.tabIndex = 0; el.title = "Open the Kiss Shop";
@@ -1096,8 +1253,19 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
     el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); goShop(); } });
   });
   $("history-open").addEventListener("click", goHistory);
-  // A ticket already paid for (scratched or not) reopens as it was; otherwise pick a card first.
-  $("play").addEventListener("click", () => (state.revealed || state.paidIdx === state.idx ? goGame() : openChooser()));
+  // A ticket already paid for and picked reopens as it was; paid but not picked goes back to the pile; otherwise buy first.
+  $("play").addEventListener("click", () => {
+    if (state.revealed || (state.paidIdx === state.idx && state.pickedIdx === state.idx)) goGame();
+    else if (state.paidIdx === state.idx) openPile();
+    else openChooser();
+  });
+  const renderSound = () => {
+    const on = state.sound !== false;
+    $("sound-btn").textContent = on ? "🔊" : "🔇";
+    $("sound-btn").setAttribute("aria-label", on ? "Sound on" : "Sound off");
+  };
+  $("sound-btn").addEventListener("click", () => { state.sound = state.sound === false; save(); renderSound(); if (!state.sound) scratchSound.quiet(); });
+  renderSound();
 
   /* ---------- choose a card ---------- */
   let picking = false;
@@ -1126,7 +1294,7 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
     }).join("");
     deck.querySelectorAll(".pick").forEach((el) => el.addEventListener("click", () => pickCard(el)));
   }
-  function pickCard(el) {
+  async function pickCard(el) {
     if (picking) return;
     const d = designOf(el.dataset.design), short = d.price - balance();
     if (short > 0) {
@@ -1136,8 +1304,11 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
       return;
     }
     picking = true;
+    const ok = await confirmBox({ icon: d.back, title: `Play ${d.name}?`, body: `This spends ${d.price} Kisses. You have ${balance()}.`, ok: `Spend ${d.price} Kisses` });
+    if (!ok || $("choose").hidden) { picking = false; return; }
+    if (d.price > balance()) { picking = false; openChooser(); return; }
     logEvent("buy", "🎟️", `Bought ${d.name} for ${d.price} Kisses (ticket #${state.idx + 1})`);
-    state.design = d.id; state.spent += d.price; state.paidIdx = state.idx;
+    state.design = d.id; state.spent += d.price; state.paidIdx = state.idx; state.pickedIdx = -1;
     state.seed = Math.floor(Math.random() * 2147483647); state.luckyShown = false; state.gridShown = false; save();
     renderBalance();
     const deck = $("deck"), dr = deck.getBoundingClientRect(), er = el.getBoundingClientRect();
@@ -1146,8 +1317,53 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
     $("choose-note").innerHTML = `<span>−${d.price} Kisses</span>`;
     setTimeout(() => burst(60, d.confetti), reduce ? 0 : 550);
     try { navigator.vibrate && navigator.vibrate(15); } catch (e) {}
-    setTimeout(goGame, reduce ? 150 : 1500);
+    setTimeout(openPile, reduce ? 150 : 1500);
   }
+
+  /* ---------- pick your own card from the pile ----------
+     The ticket is paid for; the face-down cards on the table each carry their own random seed, so the card she taps is
+     the one she scratches. */
+  let pileSeeds = [];
+  function openPile() {
+    showOnly("pile"); toTop();
+    $("pile-eyebrow").textContent = `Ticket #${state.idx + 1} · ${design().name}`;
+    $("pile-shuffle").hidden = false;
+    scatter(true);
+  }
+  function scatter(animate) {
+    const table = $("table"), d = design();
+    const W = Math.max(260, table.clientWidth), H = Math.max(240, table.clientHeight);
+    const narrow = W < 560, w = Math.round(Math.max(60, Math.min(130, W / (narrow ? 3.9 : 6.2), H / 3.3))), h = w * 1.5, n = narrow ? 11 : 14;
+    const spots = [];
+    for (let i = 0; i < n; i++) {
+      let best = null, bestGap = -1;
+      for (let k = 0; k < 30; k++) {
+        const x = w * .62 + Math.random() * Math.max(1, W - w * 1.24), y = h * .58 + Math.random() * Math.max(1, H - h * 1.16);
+        const gap = spots.reduce((m, sp) => Math.min(m, Math.hypot(sp.x - x, sp.y - y)), Infinity);
+        if (gap > bestGap) { best = { x, y }; bestGap = gap; }
+        if (gap > w * .85) break;
+      }
+      spots.push(best);
+    }
+    pileSeeds = spots.map(() => Math.floor(Math.random() * 2147483647));
+    table.classList.remove("chosen");
+    table.innerHTML = spots.map((sp, i) => `<button class="pile-card${animate ? "" : " still"}" data-design="${d.id}" data-i="${i}" aria-label="Card ${i + 1}"
+      style="--x:${Math.round(sp.x)}px;--y:${Math.round(sp.y)}px;--w:${w}px;--r:${(Math.random() * 56 - 28).toFixed(1)}deg;--i:${i};--z:${i + 1}">
+      <span class="pile-face"><span>${d.back}</span><b>Lucky</b></span></button>`).join("");
+    table.querySelectorAll(".pile-card").forEach((el) => el.addEventListener("click", () => choosePileCard(el)));
+  }
+  function choosePileCard(el) {
+    const table = $("table");
+    if (table.classList.contains("chosen") || state.paidIdx !== state.idx || state.pickedIdx === state.idx) return;
+    const seed = pileSeeds[Number(el.dataset.i)];
+    if (Number.isFinite(seed)) state.seed = seed;
+    state.pickedIdx = state.idx; save();
+    table.classList.add("chosen"); el.classList.add("chosen"); $("pile-shuffle").hidden = true;
+    try { navigator.vibrate && navigator.vibrate(20); } catch (e) {}
+    setTimeout(() => burst(50, design().confetti), reduce ? 0 : 450);
+    setTimeout(goGame, reduce ? 150 : 1300);
+  }
+  $("pile-shuffle").addEventListener("click", () => { if (!$("table").classList.contains("chosen")) scatter(true); });
 
   /* ---------- ticket flow ---------- */
   // Lucky Blue and Golden Affair both start with lucky numbers to scratch.
@@ -1242,6 +1458,7 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
       burst(t.big ? 220 : t.win ? 110 : 30, t.big ? GOLD : design().confetti);
       if (t.big) setTimeout(() => burst(160, GOLD), 600);
       try { navigator.vibrate && navigator.vibrate(t.win ? [30, 40, 60] : 20); } catch (e) {}
+      if (t.win) scratchSound.win(t.big);
     }
     $("next").addEventListener("click", () => { state.idx++; state.revealed = false; state.luckyShown = false; state.gridShown = false; save(); openChooser(); });
   }
@@ -1590,6 +1807,7 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
     db.collection("asks").onSnapshot((snap) => {
       asks = snap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
       refundDeclined();
+      if (!$("home").hidden) renderHomeStats();
       if (!$("shop").hidden) renderShop();
       if (!$("lt").hidden) renderLT();
     }, () => {});
@@ -1731,7 +1949,10 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
   });
 
   let rt = 0;
-  window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (!$("game").hidden) { mainFoil.redraw(); luckyFoil.redraw(); } }, 150); });
+  window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => {
+    if (!$("game").hidden) { mainFoil.redraw(); luckyFoil.redraw(); }
+    if (!$("pile").hidden && !$("table").classList.contains("chosen")) scatter(false);
+  }, 150); });
   document.body.classList.add("full");
   renderBalance();
   updateHome();
