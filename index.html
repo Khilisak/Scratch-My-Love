@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script><script src="lucky-link.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lucky Aileen</title>
@@ -1537,15 +1538,18 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
       : '<li class="empty">Nothing sent yet.</li>';
   }
 
-  /* Who is viewing: shared by the login screen and the live connection. */
-  const viewer = (async () => {
+  /* Who is viewing: shared by the login screen and the live connection. On its own domain (lucky-link.js loaded)
+     nobody is known until the password signs in to Supabase, so the live connection waits for the login. */
+  const HOSTED = window.LUCKY_HOSTED || null;
+  let hostedViewer = null;
+  const viewer = HOSTED ? new Promise((resolve) => (hostedViewer = resolve)) : (async () => {
     if (!window.claude || typeof window.claude.use !== "function") return { runtime: false, owner: false };
     const user = await window.claude.use("user");
     return { runtime: true, owner: user ? await user.isOwner() : false };
   })();
   const dbReady = (async () => ((await viewer).runtime ? window.claude.use("db") : null))();
 
-  /* ---------- live connection (only inside the Claude viewer) ---------- */
+  /* ---------- live connection (inside the Claude viewer, or Supabase on its own domain) ---------- */
   function onGrants() {
     renderBalance();
     if (!$("lt").hidden) renderLT();
@@ -1623,7 +1627,7 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
     return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
   }
   // In the Claude viewer LT's account needs the owner's own Claude account; opened as a plain file (testing) it is allowed.
-  async function ltAllowed() { const v = await viewer; return !v.runtime || v.owner; }
+  async function ltAllowed() { if (HOSTED) return true; const v = await viewer; return !v.runtime || v.owner; }
 
   let pwWho = null, signedInAs = null;
   function showLogin() {
@@ -1655,6 +1659,13 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
     if (!pw) { pwFail("Enter your password."); return; }
     $("pw-go").disabled = true;
     try {
+      if (HOSTED) {
+        // The server checks the password and says who this is; LT's role lives in the database, not in this page.
+        const r = await HOSTED.signIn(pwWho, pw);
+        if (!r.ok) { pwFail(r.message); return; }
+        hostedViewer({ runtime: true, owner: r.role === "lt" });
+        enterAs(pwWho); return;
+      }
       const v = await viewer;
       if (!v.runtime) { enterAs(pwWho); return; } // opened as a plain file for testing: there are no passwords to check
       const shared = await dbReady;
@@ -1679,7 +1690,11 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
     $("logout").textContent = `Log out (${NAMES[who]})`;
     goHome();
   }
-  $("logout").addEventListener("click", showLogin);
+  // On its own domain the live connection belongs to whoever signed in, so logging out starts the page over.
+  $("logout").addEventListener("click", () => {
+    if (HOSTED) { HOSTED.signOut().finally(() => window.location.reload()); return; }
+    showLogin();
+  });
   // The admin console is its own page in this artifact; if it can't be reached, LT gets the in-game controls instead.
   $("admin-open").addEventListener("click", async () => {
     try {
@@ -1696,6 +1711,7 @@ input[type="text"] { font: 600 16px var(--body); color: var(--ink); background: 
     $("pw-state").textContent = d.aileen && d.lt ? "Both set" : d.aileen ? "Only Aileen's set" : d.lt ? "Only LT's set" : "Not set yet";
   }
   $("set-pw-save").addEventListener("click", async () => {
+    if (HOSTED) { $("set-pw-status").textContent = "Change passwords in Supabase: Authentication > Users."; return; }
     if (!db || !isLT) { $("set-pw-status").textContent = "Only LT, signed in to Claude, can set passwords."; return; }
     const a = $("set-pw-aileen").value, l = $("set-pw-lt").value;
     if (!a && !l) { $("set-pw-status").textContent = "Type at least one password."; return; }

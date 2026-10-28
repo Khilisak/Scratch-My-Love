@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script><script src="lucky-link.js"></script>
 <meta charset="utf-8">
 <title>LT's Console</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -265,7 +266,7 @@ main { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column;
     </button>
     <div class="drop-body" id="hist-body" hidden>
       <ul class="list" id="hist-list">
-        <li><span class="empty">Nothing from Aileen yet. Her tickets, wins and swaps appear here as she plays. Her phone can only send them if you've shared the game with her as an Editor.</span></li>
+        <li><span class="empty">Nothing from Aileen yet. Her tickets, wins and swaps appear here as she plays. <span class="sync-hint" data-what="them">Her phone can only send them if you've shared the game with her as an Editor.</span></span></li>
       </ul>
       <nav class="pager" id="hist-pager" aria-label="Activity pages" hidden>
         <button class="btn ghost small" id="hist-prev" type="button">‹ Newer</button>
@@ -283,7 +284,7 @@ main { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column;
           <div class="tile kisses blank" id="tile-kisses"><small>Kisses</small><b id="bal-kisses">–</b><em id="bal-kisses-kip">&nbsp;</em></div>
           <div class="tile blank" id="tile-kip"><small>Money</small><b id="bal-kip">–</b><em>kip</em></div>
         </div>
-        <p class="note" id="bal-note">Her balance shows here once her phone syncs. Her phone can only send it if you've shared the game with her as an Editor.</p>
+        <p class="note" id="bal-note">Her balance shows here once her phone syncs. <span class="sync-hint" data-what="it">Her phone can only send it if you've shared the game with her as an Editor.</span></p>
         <div class="sums" id="sums"></div>
       </section>
 
@@ -318,7 +319,7 @@ main { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column;
       <section class="panel" id="req-panel">
         <header><h2>Her requests</h2><span id="req-count">None waiting</span></header>
         <ul class="list" id="req-list">
-          <li><span class="empty">When Aileen asks for Kisses, buys Kisses with kip, or withdraws her money, it shows here for you to answer. Her phone can only send requests if you've shared the game with her as an Editor.</span></li>
+          <li><span class="empty">When Aileen asks for Kisses, buys Kisses with kip, or withdraws her money, it shows here for you to answer. <span class="sync-hint" data-what="requests">Her phone can only send requests if you've shared the game with her as an Editor.</span></span></li>
         </ul>
         <div id="req-done-wrap" hidden>
           <button class="drop" id="done-toggle" type="button" aria-expanded="false" aria-controls="done-body">
@@ -370,6 +371,12 @@ main { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column;
   const MAX = { kisses: 10000, kip: 100000000 };
   const unit = (cur, n) => cur === "kip" ? `${fmt(n)} kip` : `${fmt(n)} ${Math.abs(n) === 1 ? "Kiss" : "Kisses"}`;
   const curOf = (g) => (g.currency === "kip" ? "kip" : "kisses");
+  /* Where her phone's updates come from differs by copy: on Claude she needs Editor access to the shared game;
+     on the self-hosted copy (window.LUCKY_HOSTED) she just has to be signed in to the game on her phone. */
+  const syncHint = (what) => window.LUCKY_HOSTED
+    ? `Her phone sends ${what} once she's signed in to the game.`
+    : `Her phone can only send ${what} if you've shared the game with her as an Editor.`;
+  document.querySelectorAll(".sync-hint").forEach((el) => { el.textContent = syncHint(el.dataset.what); });
 
   let db = null, grants = [], asks = [], history = [], status = null;
 
@@ -503,7 +510,7 @@ main { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column;
     } else {
       $("bal-kisses").textContent = "–"; $("bal-kisses-kip").innerHTML = "&nbsp;"; $("bal-kip").textContent = "–";
       $("bal-when").textContent = "Not synced yet";
-      $("bal-note").textContent = "Her balance shows here once her phone syncs. Her phone can only send it if you've shared the game with her as an Editor.";
+      $("bal-note").textContent = `Her balance shows here once her phone syncs. ${syncHint("it")}`;
     }
     const k = grants.filter((g) => curOf(g) === "kisses").reduce((a, g) => a + num(g.amount), 0);
     const m = grants.filter((g) => curOf(g) === "kip").reduce((a, g) => a + num(g.amount), 0);
@@ -643,7 +650,7 @@ main { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column;
           <span class="t">${r.line(a.amount, a)}<small>${reqNote(a)}${when(a.at)} · ${r.sub(a.amount)}</small></span>
           <span class="acts">${a.type === "earn" && !a.amount ? "" : `<button class="btn small${r.danger ? " ghost" : ""}" type="button" data-give="${esc(a.id)}">${act}</button>`}<button class="link" type="button" data-decline="${esc(a.id)}">Decline</button></span></li>`;
         }).join("")
-      : `<li><span class="empty">${asks.length ? "No requests waiting." : "When Aileen asks for Kisses, buys Kisses with kip, or withdraws her money, it shows here for you to answer. Her phone can only send requests if you've shared the game with her as an Editor."}</span></li>`;
+      : `<li><span class="empty">${asks.length ? "No requests waiting." : "When Aileen asks for Kisses, buys Kisses with kip, or withdraws her money, it shows here for you to answer. " + syncHint("requests")}</span></li>`;
     $("req-done-wrap").hidden = !done.length;
     doneOpen.count(done.length);
     $("req-done").innerHTML = donePages.slice(done).map((a) => {
@@ -715,7 +722,7 @@ main { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column;
     const shown = histPages.slice(history);
     $("hist-list").innerHTML = history.length
       ? shown.map((e) => `<li><span class="e">${esc(e.icon || "•")}</span><span class="t">${esc(String(e.text || e.kind || "").slice(0, 200))}<small>${e.t ? when(e.t) : ""}</small></span></li>`).join("")
-      : '<li><span class="empty">Nothing from Aileen yet. Her tickets, wins and swaps appear here as she plays. Her phone can only send them if you\'ve shared the game with her as an Editor.</span></li>';
+      : '<li><span class="empty">Nothing from Aileen yet. Her tickets, wins and swaps appear here as she plays. ' + syncHint("them") + '</span></li>';
   }
 
   /* ---------- connect ---------- */
@@ -728,7 +735,12 @@ main { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column;
       gate("This page is for LT", "Open it from the game's link in Claude, signed in as LT."); return;
     }
     const user = await window.claude.use("user");
-    if (!user) { gate("Can't tell who's here", "This page couldn't check who you are. Open it from the game's link in Claude, signed in as LT."); return; }
+    // On the self-hosted copy (window.LUCKY_HOSTED) there is no Claude account: LT signs in on the game's login screen.
+    if (!user) {
+      if (window.LUCKY_HOSTED) gate("Sign in as LT", "Log in as LT in the game first, then open the console.");
+      else gate("Can't tell who's here", "This page couldn't check who you are. Open it from the game's link in Claude, signed in as LT.");
+      return;
+    }
     const owner = await user.isOwner();
     if (!owner) { gate("This page is for LT", "Only LT can open the console. Head back to the game to play."); return; }
     $("gate").hidden = true; $("console").hidden = false;
